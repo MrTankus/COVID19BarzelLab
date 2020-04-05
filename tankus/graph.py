@@ -25,11 +25,30 @@ class ZonePopulation(object):
 class MigrationPopulation(object):
 
     def __init__(self, fraction):
+        assert 0 < fraction < 1
         self.fraction = fraction
 
+    def migrate_population(self, from_population, to_population):
 
-    def get_migrated_population(self, population):
-        pass
+        def normalize(n):
+            if n > 0:
+                return int(n * self.fraction) if n > 10 else 1
+            else:
+                return 0
+        migrated_susceptible = normalize(from_population.susceptible)
+        migrated_exposed = normalize(from_population.exposed)
+        migrated_infected = 0
+        migrated_recovered = normalize(from_population.recovered)
+
+        to_population.susceptible += migrated_susceptible
+        to_population.exposed += migrated_exposed
+        to_population.infected += migrated_infected
+        to_population.recovered += migrated_recovered
+
+        from_population.susceptible -= migrated_susceptible
+        from_population.exposed -= migrated_exposed
+        from_population.infected -= migrated_infected
+        from_population.recovered -= migrated_recovered
 
 
 class Zone(object):
@@ -97,17 +116,17 @@ class Edge(object):
 
 class Network(object):
 
-    def __init__(self, vertices, edges):
+    def __init__(self, vertices, edges, eta):
         self.vertices = set(vertices)
         self.edges = set(edges)
         self.vertices_map = dict([(v.id, v) for v in self.vertices])
         self.alpha = 0.1
         self.beta = 0.5
         self.gamma = 0.2
-        self.eta = 0.45
+        self.eta = eta
 
     @classmethod
-    def initialize(cls, zones, total_population):
+    def initialize(cls, zones, total_population, eta):
         vertices = set()
         i = 0
         j = 0
@@ -141,7 +160,7 @@ class Network(object):
                     from_zone.migration_to_map[to_zone.id] = migration_population
                     to_zone.migration_from_map[from_zone.id] = migration_population
 
-        return Network(vertices=vertices, edges=edges)
+        return Network(vertices=vertices, edges=edges, eta=eta)
 
     def increment(self):
         for zone in self.vertices:
@@ -149,17 +168,25 @@ class Network(object):
         for zone in self.vertices:
             self.migrate_to(zone)
         for zone in self.vertices:
-            if zone.state:
+            if zone.state is not None:
                 if zone.state != State.RED:
                     zone.run_internal_dynamics(alpha=self.alpha, beta=self.beta, gamma=self.gamma)
                 else:
                     zone.run_internal_dynamics(alpha=self.alpha, beta=0, gamma=self.gamma)
-        # for zone in self.vertices:
-        #     self.migrate_back(zone)
-
+        for zone in self.vertices:
+            self.migrate_back(zone)
 
     def migrate_to(self, from_zone):
-        pass
+        for to_zone_id in from_zone.migration_to_map:
+            to_zone = self.vertices_map.get(to_zone_id)
+            migration_population = from_zone.migration_to_map.get(to_zone_id)
+            if to_zone:
+                migration_population.migrate_population(from_population=from_zone.population, to_population=to_zone.population)
 
-    def migrate_back(self, to_zoגne):
-        pass
+    def migrate_back(self, to_zone):
+        for from_zone_id in to_zone.migration_from_map:
+            from_zone = self.vertices_map.get(from_zone_id)
+            migration_population = to_zone.migration_from_map.get(from_zone_id)
+            if from_zone:
+                migration_population.migrate_population(from_population=from_zone.population,
+                                                        to_population=to_zone.population)

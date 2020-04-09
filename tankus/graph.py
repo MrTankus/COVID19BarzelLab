@@ -22,7 +22,7 @@ class ZonePopulation(object):
         self.total = susceptible + exposed + infected + recovered
 
     def calculate_positive_fraction(self):
-        return (self.exposed + self.infected + self.hospitalizedx) / self.total
+        return (self.exposed + self.infected + self.hospitalized) / self.total
 
 
 class MigrationPopulation(object):
@@ -172,7 +172,7 @@ class Network(object):
                 c = MigrationPopulation.calculate_migration_coefficient(from_zone=from_zone, to_zone=to_zone, all_zones=vertices)
                 # TODO - fix this! link.weight is now c * (p1 * p2 / r^2) and not (1/r^2)
                 if np.random.random() < c * link.weight:
-                    migration_population = MigrationPopulation(fraction=0.01)
+                    migration_population = MigrationPopulation(fraction=settings.MIGRATION_PERCENTAGE)
                     from_zone.migration_to_map[to_zone.id] = migration_population
                     to_zone.migration_from_map[from_zone.id] = migration_population
 

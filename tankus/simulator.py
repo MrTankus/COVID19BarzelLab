@@ -36,7 +36,7 @@ def main():
         plt.plot(days, infectious)
 
     plt.plot(days, i_peak)
-    legends = ['H(t); eta = {}'.format(eta) for eta in etas]
+    legends = ['H(t); eta = {}'.format(eta) for eta in settings.ETAS]
     legends.append('I peak')
     plt.legend(legends)
     plt.show()
